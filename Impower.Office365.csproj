@@ -32,5 +32,11 @@
     <Reference Include="System.Activities.Presentation" />
     <Reference Include="WindowsBase" />
   </ItemGroup>
+  
+  <ItemGroup>
+    <None Update="README.md">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
 
 </Project>
