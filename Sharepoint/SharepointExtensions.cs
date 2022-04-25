@@ -13,6 +13,7 @@ using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using Impower.Office365.Sharepoint.Models;
 using System.Text.RegularExpressions;
+using System.Data;
 
 namespace Impower.Office365.Sharepoint
 {
@@ -20,7 +21,7 @@ namespace Impower.Office365.Sharepoint
     {
         public static string GetDriveUrlNameFromDriveItemWebUrl(string driveItemWebUrl, string siteWebUrl)
         {
-            if(!driveItemWebUrl.Contains(siteWebUrl))
+            if (!driveItemWebUrl.Contains(siteWebUrl))
             {
                 throw new Exception("Could not find Site URL within DriveItem WebURL.");
             }
@@ -118,9 +119,11 @@ namespace Impower.Office365.Sharepoint
         {
             var hostName = GetSharepointHostNameFromUrl(webUrl);
             var sitePath = GetSharepointSitePathFromUrl(webUrl);
-            try {
+            try
+            {
                 return await client.Sites.GetByPath(sitePath, hostName).Request().GetAsync(token);
-            }catch(Exception e)
+            }
+            catch (Exception e)
             {
                 throw new Exception($"Could not find a site for '{webUrl}'", e);
             }
@@ -182,7 +185,7 @@ namespace Impower.Office365.Sharepoint
             if (String.IsNullOrWhiteSpace(siteId) && !String.IsNullOrWhiteSpace(driveItem.WebUrl))
             {
                 var siteUrl = GetSharepointSiteUrlFromDriveItemWebUrl(driveItem.WebUrl);
-                site = await client.GetSharepointSiteFromUrl(token,siteUrl);
+                site = await client.GetSharepointSiteFromUrl(token, siteUrl);
                 siteId = site.Id;
             }
             //At this point, if siteId is not set, we can conclude the above methods have failed.
@@ -279,6 +282,31 @@ namespace Impower.Office365.Sharepoint
             }
             return await drive.Items[itemId].Request().Expand(item => item.ListItem).GetAsync(token);
         }
+        public static async Task UploadListItems(this GraphServiceClient client, CancellationToken token, string siteId, string listId, DataTable data)
+        {
+
+            foreach (DataRow row in data.AsEnumerable())
+            {
+
+                var listItem = new ListItem()
+                {
+                    Fields = new FieldValueSet()
+                    {
+
+                        AdditionalData = new Dictionary<string, object>()
+                        {
+
+                        }
+                    }
+                };
+                foreach (DataColumn column in data.Columns)
+                {
+                    listItem.Fields.AdditionalData[column.ColumnName] = row[column.ColumnName].ToString();
+       
+                }
+                _ = await client.Sites[siteId].Lists[listId].Items.Request().AddAsync(listItem, cancellationToken: token);
+            }
+        }
         public static async Task<List> GetSharepointList(
             this GraphServiceClient client,
             CancellationToken token,
@@ -308,7 +336,7 @@ namespace Impower.Office365.Sharepoint
                 drive = client.Sites[siteId].Drives[driveId];
             }
 
-            return await drive.Items[itemId].ListItem.Fields.Request().UpdateAsync(fieldValueSet,token);
+            return await drive.Items[itemId].ListItem.Fields.Request().UpdateAsync(fieldValueSet, token);
 
         }
         public static async Task<ListItem> GetSharepointListItem(
@@ -342,7 +370,7 @@ namespace Impower.Office365.Sharepoint
             {
                 drive = client.Sites[siteId].Drives[driveId];
             }
-            
+
             if (String.IsNullOrWhiteSpace(folder))
             {
                 request = drive.Root.Children.Request();

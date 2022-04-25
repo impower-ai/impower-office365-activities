@@ -1,4 +1,5 @@
-﻿using Microsoft.Graph;
+﻿using Impower.Office365.Sharepoint.Models;
+using Microsoft.Graph;
 using System;
 using System.Activities;
 using System.Collections.Generic;
@@ -14,10 +15,10 @@ namespace Impower.Office365.Sharepoint
     {
         [RequiredArgument]
         [DisplayName("List ID")]
-        public InArgument<string> ListID { get; set; }
+        public InArgument<ListLocator> ListLocator { get; set; }
         [RequiredArgument]
         [DisplayName("ListItem ID")]
-        public InArgument<string> ListItemID { get; set; }
+        public InArgument<ListItemLocator> ListItemLocator { get; set; }
 
         protected string ListIdValue;
         protected string ListItemIdValue;
@@ -26,8 +27,8 @@ namespace Impower.Office365.Sharepoint
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
-            ListIdValue = context.GetValue(ListID);
-            ListItemIdValue = context.GetValue(ListItemID);
+            ListIdValue = context.GetValue(ListLocator);
+            ListItemIdValue = context.GetValue(ListItemLocator);
         }
 
         protected override async Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token)
