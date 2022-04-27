@@ -188,7 +188,7 @@ namespace Impower.Office365.Sharepoint
             }
             return null;
         }
-        public static async Task<DriveItem> GetSharepointWorkbook(
+        public static async Task<Workbook> GetSharepointWorkbook(
             this GraphServiceClient client,
             CancellationToken token,
             DriveItemReference item,
@@ -196,12 +196,12 @@ namespace Impower.Office365.Sharepoint
 
         )
         {
-            var driveItem = await item.RequestBuilder(client).Request().UpdateRequestWithSession(session).GetAsync(token);
-            if (String.IsNullOrWhiteSpace(driveItem?.Workbook?.Application?.Id ?? String.Empty))
+            var workbook = await item.RequestBuilder(client).Workbook.Request().Expand(book => book.Worksheets).WithSession(session).GetAsync(token);
+            if ((workbook?.Worksheets?.Count() ?? 0) == 0)
             {
                 throw new Exception("This drive item does not appear to be a valid workbook.");
             }
-            return driveItem;
+            return workbook;
         }
         public static async Task UploadListItems(this GraphServiceClient client, CancellationToken token, ListReference list, DataTable data)
         {

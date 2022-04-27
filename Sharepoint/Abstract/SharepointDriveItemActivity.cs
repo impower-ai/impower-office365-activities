@@ -14,12 +14,13 @@ namespace Impower.Office365.Sharepoint
         [RequiredArgument]
         public InArgument<DriveItemLocator> DriveItemLocator { get; set; }
 
-        public DriveItemReference DriveItemReference;
+        public DriveItemReference DriveItemReference => DriveReference.Item(DriveItemId);
+        protected string DriveItemId;
         protected DriveItem DriveItem;
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
-            DriveItemReference = DriveReference.Item(context.GetValue(DriveItemLocator));
+            DriveItemId = context.GetValue(DriveItemLocator);
         }
         protected override async Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token)
         {
