@@ -12,7 +12,7 @@ using System.Threading.Tasks;
 
 namespace Impower.Office365.Excel
 {
-    public abstract class SharepointWorkbookActivity : SharepointDriveActivity
+    public abstract class SharepointWorkbookActivity : SharepointDriveItemActivity
     {
         [Category("Config")]
         [DisplayName("Use Session?")]
@@ -25,16 +25,11 @@ namespace Impower.Office365.Excel
         [Category("Config")]
         [DisplayName("Session")]
         public InOutArgument<WorkbookSessionInfo> SessionArgument { get; set; }
-        [Category("Input")]
-        [DisplayName("DriveItem ID")]
-        [RequiredArgument]
-        public InArgument<DriveItemLocator> DriveItemLocator { get; set; }
         public WorkbookSessionConfiguration SessionConfiguration;
-        public DriveItemReference DriveItemReference;
         private string driveItemId;
+        private Workbook Workbook;
         public bool PersistChanges;
         public bool UseSession;
-        protected DriveItem DriveItem;
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
@@ -58,12 +53,11 @@ namespace Impower.Office365.Excel
         protected override async Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token)
         {
             await base.Initialize(client, context, token);
-            DriveItemReference = DriveReference.Item(driveItemId);
             if (SessionConfiguration.Session == null)
             {
                 SessionConfiguration = await SessionConfiguration.NewSession(client, DriveItemReference, token);
             }
-            DriveItem = await client.GetSharepointWorkbook(token, DriveItemReference, SessionConfiguration);
+            Workbook = await client.GetSharepointWorkbook(token, DriveItemReference, SessionConfiguration);
 
         }
         protected override Action<AsyncCodeActivityContext> Finalize()

@@ -45,7 +45,7 @@ namespace Impower.Office365.Excel
             await client.RecalculateWorkbook(driveItem.RequestBuilder(client), session, type, interval, timeout, token);
         }
 
-        public static TRequest UpdateRequestWithSession<TRequest>(this TRequest requestBuilder, WorkbookSessionConfiguration config)
+        public static TRequest WithSession<TRequest>(this TRequest requestBuilder, WorkbookSessionConfiguration config)
             where TRequest : IBaseRequest
         {
             return config.UseSession ? requestBuilder.Header(SessionHeader, config.Session.Id) : requestBuilder;
@@ -139,7 +139,20 @@ namespace Impower.Office365.Excel
         {
             await EndWorkbookSession(driveItem.RequestBuilder(client), session, token);
         }
-
+        public static async Task<string> GetWorksheetNameFromTable(this GraphServiceClient client, DriveItemReference driveItem, string tableName, WorkbookSessionConfiguration session, CancellationToken token)
+        {
+            var tables = await driveItem.RequestBuilder(client).Workbook.Tables.Request().WithSession(session).Expand(table => table.Worksheet).GetAsync(token);
+            var matchingTables = tables.Where(t => t.Name == tableName).ToList();
+            if (matchingTables.Count() > 1)
+            {
+                throw new Exception("Found Multiple Matching Tables");
+            }
+            if(matchingTables.Count() < 1)
+            {
+                throw new Exception("Found No Matching Tables");
+            }
+            return matchingTables.Single().Worksheet.Name;
+        }
         internal static async Task<WorkbookSessionConfiguration> BeginWorkbookSession(this IDriveItemRequestBuilder driveItemRequestBuilder, bool persistChanges, CancellationToken token)
         {
             var sessionInfo = await driveItemRequestBuilder.Workbook.CreateSession(persistChanges).Request().PostAsync(token);
@@ -157,7 +170,7 @@ namespace Impower.Office365.Excel
         {
             Console.WriteLine("Polling status....");
             Trace.WriteLine("Polling status...");
-            var request = driveItemRequestBuilder.Workbook.Application.Calculate(type.ToString()).Request().UpdateRequestWithSession(session);
+            var request = driveItemRequestBuilder.Workbook.Application.Calculate(type.ToString()).Request().WithSession(session);
             await client.ExecuteLongRunningRequest(request, HttpMethod.Post, pollInterval, timeout, token);
         }
         
