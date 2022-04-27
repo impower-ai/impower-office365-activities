@@ -26,7 +26,6 @@ namespace Impower.Office365.Excel
         [DisplayName("Session")]
         public InOutArgument<WorkbookSessionInfo> SessionArgument { get; set; }
         public WorkbookSessionConfiguration SessionConfiguration;
-        private string driveItemId;
         private Workbook Workbook;
         public bool PersistChanges;
         public bool UseSession;
@@ -48,7 +47,6 @@ namespace Impower.Office365.Excel
             {
                 SessionConfiguration = WorkbookSessionConfiguration.CreateSessionlessConfiguration();
             }
-            driveItemId = context.GetValue(DriveItemLocator);
         }
         protected override async Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token)
         {

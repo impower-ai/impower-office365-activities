@@ -13,11 +13,13 @@ namespace Impower.Office365.Excel
     [DisplayName("Get Worksheet Name From Table")]
     public class GetSheetNameFromTable : SharepointWorkbookActivity
     {
+        [Category("Input")]
         [RequiredArgument]
         [DisplayName("Table Name")]
         public InArgument<string> TableNameArgument { get; set; }
         public string TableName;
 
+        [Category("Output")]
         [RequiredArgument]
         [DisplayName("Worksheet Name")]
         public OutArgument<string> WorksheetNameArgument { get; set; }
