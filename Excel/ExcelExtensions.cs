@@ -12,6 +12,8 @@ namespace Impower.Office365.Excel
 {
     public static class ExcelExtensions
     {
+        private const string SessionHeader = "workbook-session-id";
+
         public enum CalculationType
         {
             Recalculate,
@@ -84,9 +86,13 @@ namespace Impower.Office365.Excel
             }
             return null;
         }
-        internal static async Task<WorkbookSessionInfo> BeginWorkbookSession(this IDriveItemRequestBuilder driveItemRequestBuilder)
+        internal static async Task<WorkbookSessionInfo> BeginWorkbookSession(this IDriveItemRequestBuilder driveItemRequestBuilder, bool persistChanges = true, CancellationToken token)
         {
-            return await driveItemRequestBuilder.Workbook.CreateSession(true).Request().PostAsync();
+            return await driveItemRequestBuilder.Workbook.CreateSession(persistChanges).Request().PostAsync(token);
+        }
+        internal static async Task EndWorkbookSession(this IDriveItemRequestBuilder driveItemRequestBuilder, WorkbookSessionInfo session, CancellationToken token)
+        {
+            await driveItemRequestBuilder.Workbook.CloseSession().Request().Header(SessionHeader, session.Id).PostAsync(token);
         }
         internal static async Task RecalculateWorkbook(this GraphServiceClient client, IDriveItemRequestBuilder driveItemRequestBuilder, CalculationType type, TimeSpan pollInterval, TimeSpan timeout, CancellationToken token)
         {

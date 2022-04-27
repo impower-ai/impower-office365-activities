@@ -21,10 +21,51 @@ namespace Impower.Office365.Sharepoint
 {
     public static class SharepointExtensions
     {
-        public static async Task RecalculateSharepointWorkbook(this GraphServiceClient client, CalculationType type, TimeSpan interval, TimeSpan timeout, CancellationToken token, string siteId, string driveId, string itemId)
+        public class SharepointSite
         {
-            var driveItemRequestBuilder = client.Sites[siteId].Drives[driveId].Items[itemId];
-            await client.RecalculateWorkbook(driveItemRequestBuilder, type, interval, timeout, token);
+            public string SiteId { get; private set; }
+            public SharepointSite(string siteId)
+            {
+                this.SiteId = siteId;
+            }
+            internal virtual ISiteRequestBuilder RequestBuilder(GraphServiceClient client)
+            {
+                return client.Sites[SiteId];
+            }
+        }
+        public class SharepointDrive : SharepointSite
+        {
+            public string DriveId { get; private set; }
+            public SharepointDrive(string siteId, string driveId) : base(siteId)
+            {
+                DriveId = driveId;
+            }
+            public SharepointDrive(SharepointSite site, string driveId) : this(site.SiteId, driveId) {}
+            internal new IDriveRequestBuilder RequestBuilder(GraphServiceClient client)
+            {
+                return base.RequestBuilder(client).Drives[DriveId];
+            }
+        }
+        public class SharepointDriveItem : SharepointDrive
+        {
+            public string ItemId { get; private set; }
+            public SharepointDriveItem(string siteId, string driveId, string itemId) : base(siteId, driveId)
+            {
+                ItemId = itemId;    
+            }
+            public SharepointDriveItem(SharepointDrive drive, string itemId) : this(drive.SiteId, drive.DriveId, itemId) { }
+            internal new IDriveItemRequestBuilder RequestBuilder(GraphServiceClient client)
+            {
+                return base.RequestBuilder(client).Items[ItemId];
+            }
+        }
+        public static async Task<WorkbookSessionInfo> CreateSharepointWorkbookSession(this GraphServiceClient client, SharepointDriveItem driveItem, bool persistChanges, CancellationToken token)
+        {
+            return await driveItem.RequestBuilder(client).BeginWorkbookSession(persistChanges, token);
+        }
+        public static async Task RecalculateSharepointWorkbook(this GraphServiceClient client, CalculationType type, TimeSpan interval, TimeSpan timeout, SharepointDriveItem driveItem, CancellationToken token)
+        {
+            await client.RecalculateWorkbook(driveItem.RequestBuilder(client), type, interval, timeout, token);
         }
         public static string GetDriveUrlNameFromDriveItemWebUrl(string driveItemWebUrl, string siteWebUrl)
         {
@@ -60,17 +101,15 @@ namespace Impower.Office365.Sharepoint
             string encodedUrl = "u!" + base64Value.TrimEnd('=').Replace('/', '_').Replace('+', '-');
             return encodedUrl;
         }
-        public static async Task<Permission> ShareDriveItem(
+        public static async Task<Permission> CreateSharingLinkForSharepointDriveItem(
             this GraphServiceClient client,
             CancellationToken token,
-            string driveItemId,
-            string siteId,
-            string driveId,
+            SharepointDriveItem driveItem,
             LinkType type
         )
         {
             IDriveRequestBuilder drive;
-            if (String.IsNullOrWhiteSpace(driveId))
+            if (String.IsNullOrWhiteSpace(d))
             {
                 drive = client.Sites[siteId].Drive;
             }

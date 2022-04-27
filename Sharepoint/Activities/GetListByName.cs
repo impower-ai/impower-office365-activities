@@ -2,6 +2,7 @@
 using System;
 using System.Activities;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -11,6 +12,9 @@ namespace Impower.Office365.Sharepoint
 {
     public class GetListByName : SharepointSiteActivity
     {
+        [RequiredArgument]
+        [DisplayName("List Name")]
+        [Category("Input")]
         public InArgument<string> ListName { get; set; }
         private string listName;
         public OutArgument<List> List { get; set; }

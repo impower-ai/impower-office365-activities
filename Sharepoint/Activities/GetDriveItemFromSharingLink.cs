@@ -14,6 +14,7 @@ namespace Impower.Office365.Sharepoint
     {
         [RequiredArgument]
         [Category("Input")]
+        [DisplayName("Sharing URL")]
         public InArgument<string> SharingURL { get; set; }
         internal string sharingUrl;
 

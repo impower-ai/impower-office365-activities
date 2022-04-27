@@ -25,6 +25,7 @@ stages:
     target_resource_name: 'self'
 - template: /templates/deploy-template.yml@impower
   parameters:
+    artifact_path: 'CSharp Package'
     stage_name: 'Deploy_Orchestrator'
     orchestrator_folder : 'Shared'
     service_connection: 'UiPath-Development'

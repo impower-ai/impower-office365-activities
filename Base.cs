@@ -19,6 +19,11 @@ namespace Impower.Office365
 {
     public abstract class Office365Activity : AsyncTaskCodeActivity
     {
+        [Category("Config")]
+        [DisplayName("Timeout")]
+        [DefaultValue("0:00:30")]
+        public virtual InArgument<TimeSpan> Timeout { get; set; }
+        public TimeSpan TimeoutValue;
         [Category("Connection")]
         [Description("Specify Client Object, Otherwise Uses Scope.")]
         [DisplayName("Graph Client")]
@@ -32,6 +37,7 @@ namespace Impower.Office365
           CancellationToken token)
         {
             //HANDLE CLIENT
+            TimeoutValue = context.GetValue(Timeout);
             var client = context.GetValue(GraphClient);
             if(client == null)
             {
@@ -41,12 +47,29 @@ namespace Impower.Office365
             {
                 throw new Exception("Could not acquire Graph Client from context. Place activity in scope or pass in client directly.");
             }
-            
+
             //BEGIN EXECUTION
             ReadContext(context);
             await Initialize(client, context, token);
-            return await ExecuteAsyncWithClient(token, client);
+            return await AwaitWithTimeout(ExecuteAsyncWithClient(token, client), TimeoutValue);
 
+        }
+
+        private async Task AwaitWithTimeout(Task task, TimeSpan timeout)
+        {
+            if (await Task.WhenAny(task, Task.Delay(timeout)) == task)
+            {
+                return;
+            }
+            else
+            {
+                throw new TimeoutException("Timeout Exceeded");
+            }
+        }
+        private async Task<TResult> AwaitWithTimeout<TResult>(Task<TResult> task, TimeSpan timeout)
+        {
+            await AwaitWithTimeout(task, timeout);
+            return await task;
         }
         protected abstract Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(
           CancellationToken token,

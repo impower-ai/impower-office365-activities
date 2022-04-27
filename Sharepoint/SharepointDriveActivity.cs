@@ -4,6 +4,8 @@ using System.Activities;
 using System.Threading;
 using System.Threading.Tasks;
 using System.ComponentModel;
+using static Impower.Office365.Sharepoint.SharepointExtensions;
+
 namespace Impower.Office365.Sharepoint
 {
     public abstract class SharepointDriveActivity : SharepointSiteActivity
@@ -14,6 +16,7 @@ namespace Impower.Office365.Sharepoint
         public InArgument<string> DriveName { get; set; }
         protected string DriveNameValue;
         protected Drive DriveValue;
+        protected SharepointDrive Drive => new SharepointDrive()
         protected string DriveId => DriveValue?.Id;
         protected string ListId => DriveValue?.List?.Id;
         protected override void ReadContext(AsyncCodeActivityContext context)

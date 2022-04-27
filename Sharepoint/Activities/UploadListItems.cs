@@ -3,6 +3,7 @@ using Microsoft.Graph;
 using System;
 using System.Activities;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Data;
 using System.Linq;
 using System.Text;
@@ -14,8 +15,10 @@ namespace Impower.Office365.Sharepoint
     public class UploadListItems : SharepointSiteActivity
     {
         [RequiredArgument]
+        [Category("Input")]
         public InArgument<ListLocator> List { get; set; }
         private string listID;
+        [Category("Input")]
         [RequiredArgument]       
         public InArgument<DataTable> Data { get; set; }
         private DataTable data;
