@@ -22,8 +22,8 @@ namespace Impower.Office365.Sharepoint
         [Category("Output")]
         [DisplayName("Updated Fields")]
         public OutArgument<Dictionary<string, object>> UpdatedFields { get; set; }
-        private Dictionary<string, object> FieldsValue;
-        private bool UseDisplayNamesValue; 
+        protected Dictionary<string, object> FieldsValue;
+        protected bool UseDisplayNamesValue; 
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);

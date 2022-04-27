@@ -15,7 +15,7 @@ namespace Impower.Office365.Excel
         [Category("Input")]
         [DefaultValue("0:00:15")]
         public InArgument<TimeSpan> RefreshInterval { get; set; }
-        internal TimeSpan RefreshIntervalValue;
+        protected TimeSpan RefreshIntervalValue;
 
         [DisplayName("Timeout")]
         [Category("Config")]

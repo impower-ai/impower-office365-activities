@@ -25,10 +25,10 @@ namespace Impower.Office365.Excel
         [Category("Config")]
         [DisplayName("Session")]
         public InOutArgument<WorkbookSessionInfo> SessionArgument { get; set; }
-        public WorkbookSessionConfiguration SessionConfiguration;
-        private Workbook Workbook;
-        public bool PersistChanges;
-        public bool UseSession;
+        protected WorkbookSessionConfiguration SessionConfiguration;
+        protected Workbook Workbook;
+        protected bool PersistChanges;
+        protected bool UseSession;
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);

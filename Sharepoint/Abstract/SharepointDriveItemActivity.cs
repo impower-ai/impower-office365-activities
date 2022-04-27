@@ -14,7 +14,7 @@ namespace Impower.Office365.Sharepoint
         [RequiredArgument]
         public InArgument<DriveItemLocator> DriveItemLocator { get; set; }
 
-        public DriveItemReference DriveItemReference => DriveReference.Item(DriveItemId);
+        protected DriveItemReference DriveItemReference => DriveReference.Item(DriveItemId);
         protected string DriveItemId;
         protected DriveItem DriveItem;
         protected override void ReadContext(AsyncCodeActivityContext context)

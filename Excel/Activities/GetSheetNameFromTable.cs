@@ -17,7 +17,7 @@ namespace Impower.Office365.Excel
         [RequiredArgument]
         [DisplayName("Table Name")]
         public InArgument<string> TableNameArgument { get; set; }
-        public string TableName;
+        protected string TableName;
 
         [Category("Output")]
         [RequiredArgument]

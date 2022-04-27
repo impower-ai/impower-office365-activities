@@ -24,7 +24,7 @@ namespace Impower.Office365.Mail
         public OutArgument<Message> Message { get; set; }
 
 
-        internal bool GetAttachmentsValue;
+        protected bool GetAttachmentsValue;
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);

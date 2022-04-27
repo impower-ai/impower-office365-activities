@@ -17,7 +17,7 @@ namespace Impower.Office365.Mail
         [Description("Where To Save The Email")]
         [DefaultValue(true)]
         public InArgument<string> FilePath { get; set; }
-        private string FilePathValue;
+        protected string FilePathValue;
 
         protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
         {
