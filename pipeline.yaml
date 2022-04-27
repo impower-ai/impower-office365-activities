@@ -20,19 +20,22 @@ pool:
    vmImage: windows-latest
 
 stages:
-- template: /templates/csharp-template.yaml@impower
+- template: /templates/csharp-build.yaml@impower
   parameters:
-    folder : 'Shared'
-    uipath_environment: 'UiPath-Development'
-    stage_name: 'Development'
-    deploy_environment: 'Impower-Development'
     target_resource_name: 'self'
-- template: /templates/publish_to_nugetorg.yaml@impower
+- template: /templates/deploy-template.yml@impower
+  parameters:
+    stage_name: 'Deploy_Orchestrator'
+    orchestrator_folder : 'Shared'
+    service_connection: 'UiPath-Development'
+    azure_environment: 'Impower-Development'
+    stage_dependencies:
+    - 'Build'
+- template: /templates/publish-to-nuget-feed.yaml@impower
   parameters:
     artifact_directory: 'CSharp Package'
     service_connection: 'ImpowerAiNuget'
     azure_environment: 'NugetOrg'
-    stage_name: 'Deploy_To_Impower_Nuget_Feed'
+    stage_name: 'Deploy_Nuget'
     stage_dependencies:
-    - 'Development'
-    main_only: true
+    - 'Build'
