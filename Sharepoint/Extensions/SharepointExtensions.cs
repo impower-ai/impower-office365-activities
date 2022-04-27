@@ -196,7 +196,7 @@ namespace Impower.Office365.Sharepoint
 
         )
         {
-            var driveItem = await item.RequestBuilder(client).Request().UpdateRequestWithSession(session).Expand(requestItem => requestItem.Workbook).GetAsync(token);
+            var driveItem = await item.RequestBuilder(client).Request().UpdateRequestWithSession(session).GetAsync(token);
             if (String.IsNullOrWhiteSpace(driveItem?.Workbook?.Application?.Id ?? String.Empty))
             {
                 throw new Exception("This drive item does not appear to be a valid workbook.");

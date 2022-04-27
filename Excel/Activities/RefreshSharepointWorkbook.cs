@@ -35,9 +35,9 @@ namespace Impower.Office365.Excel
         }
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
+            base.ReadContext(context);
             TimeoutValue = Timeout.Get(context);
             RefreshIntervalValue = RefreshInterval.Get(context);
-            base.ReadContext(context);
 
         }
     }

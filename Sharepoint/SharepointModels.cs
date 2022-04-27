@@ -55,7 +55,7 @@ namespace Impower.Office365.Sharepoint.Models
 
         public override Task<Drive> Get(GraphServiceClient client, CancellationToken token)
         {
-            return RequestBuilder(client).Request().Expand(drive => drive.List).GetAsync();
+            return RequestBuilder(client).Request().GetAsync();
         }
         public DriveItemReference Item(DriveItemLocator driveItem) => new DriveItemReference(this, driveItem);
     }
