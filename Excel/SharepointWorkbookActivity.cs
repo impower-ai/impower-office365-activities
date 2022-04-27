@@ -31,6 +31,7 @@ namespace Impower.Office365.Excel
         public InArgument<DriveItemLocator> DriveItemLocator { get; set; }
         public WorkbookSessionConfiguration SessionConfiguration;
         public DriveItemReference DriveItemReference;
+        private string driveItemId;
         public bool PersistChanges;
         public bool UseSession;
         protected DriveItem DriveItem;
@@ -52,12 +53,13 @@ namespace Impower.Office365.Excel
             {
                 SessionConfiguration = WorkbookSessionConfiguration.CreateSessionlessConfiguration();
             }
-            DriveItemReference = DriveReference.Item(context.GetValue(DriveItemLocator));
+            driveItemId = context.GetValue(DriveItemLocator);
         }
         protected override async Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token)
         {
             await base.Initialize(client, context, token);
-            if(SessionConfiguration.Session == null)
+            DriveItemReference = DriveReference.Item(driveItemId);
+            if (SessionConfiguration.Session == null)
             {
                 SessionConfiguration = await SessionConfiguration.NewSession(client, DriveItemReference, token);
             }

@@ -155,6 +155,8 @@ namespace Impower.Office365.Excel
         }
         internal static async Task RecalculateWorkbook(this GraphServiceClient client, IDriveItemRequestBuilder driveItemRequestBuilder, WorkbookSessionConfiguration session, CalculationType type, TimeSpan pollInterval, TimeSpan timeout, CancellationToken token)
         {
+            Console.WriteLine("Polling status....");
+            Trace.WriteLine("Polling status...");
             var request = driveItemRequestBuilder.Workbook.Application.Calculate(type.ToString()).Request().UpdateRequestWithSession(session);
             await client.ExecuteLongRunningRequest(request, HttpMethod.Post, pollInterval, timeout, token);
         }
