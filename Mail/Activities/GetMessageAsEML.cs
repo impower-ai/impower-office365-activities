@@ -12,6 +12,7 @@ namespace Impower.Office365.Mail
     [DisplayName("Download Message as .EML")]
     public class GetMessageAsEML : MessageActivity
     {
+        [DisplayName("File Path")]
         [Category("Input")]
         [Description("Where To Save The Email")]
         [DefaultValue(true)]

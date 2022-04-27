@@ -1,77 +1,28 @@
 ﻿using Microsoft.Graph;
 using System;
-using System.Activities;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using System.ComponentModel;
 using System.IO;
-using Newtonsoft.Json;
-using System.Net.Http;
-using Newtonsoft.Json.Linq;
 using Impower.Office365.Sharepoint.Models;
-using System.Text.RegularExpressions;
+using Impower.Office365.Excel;
 using System.Data;
+using static Impower.Office365.Excel.ExcelExtensions;
 
 namespace Impower.Office365.Sharepoint
 {
-    public static class SharepointExtensions
+    public static partial class SharepointExtensions
     {
-        public static string GetDriveUrlNameFromDriveItemWebUrl(string driveItemWebUrl, string siteWebUrl)
-        {
-            if (!driveItemWebUrl.Contains(siteWebUrl))
-            {
-                throw new Exception("Could not find Site URL within DriveItem WebURL.");
-            }
-            return driveItemWebUrl
-                .Replace(siteWebUrl, String.Empty)
-                .TrimStart('/')
-                .Split('/')[0];
-        }
-        public static string GetSharepointSiteUrlFromDriveItemWebUrl(string driveItemWebUrl)
-        {
-            return Regex.Match(driveItemWebUrl, ".*/sites/([^/]*(/|$)){1}").Value;
-        }
-        public static string GetSharepointHostNameFromUrl(string url)
-        {
-            return url.Replace("http://", String.Empty).Replace("https://", String.Empty).Split('/')[0];
-        }
-        public static string GetSharepointSitePathFromUrl(string url)
-        {
-            int index = url.IndexOf("/sites/");
-            if (index < 0)
-            {
-                throw new Exception("Could not find site path from URL");
-            }
-            return url.Substring(index).TrimEnd('/');
-        }
-        public static string GetEncodedSharingUrl(string url)
-        {
-            string base64Value = System.Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(url));
-            string encodedUrl = "u!" + base64Value.TrimEnd('=').Replace('/', '_').Replace('+', '-');
-            return encodedUrl;
-        }
-        public static async Task<Permission> ShareDriveItem(
+
+        public static async Task<Permission> CreateSharingLinkForSharepointDriveItem(
             this GraphServiceClient client,
             CancellationToken token,
-            string driveItemId,
-            string siteId,
-            string driveId,
+            DriveItemReference driveItem,
             LinkType type
         )
         {
-            IDriveRequestBuilder drive;
-            if (String.IsNullOrWhiteSpace(driveId))
-            {
-                drive = client.Sites[siteId].Drive;
-            }
-            else
-            {
-                drive = client.Sites[siteId].Drives[driveId];
-            }
-            return await drive.Items[driveItemId].CreateLink(type.ToString(), "organization").Request().PostAsync(token);
+            return await driveItem.RequestBuilder(client).CreateLink(type.ToString(), "organization").Request().PostAsync(token);
         }
         public static async Task<DriveItem> GetDriveItemFromSharingUrl(
             this GraphServiceClient client,
@@ -81,24 +32,6 @@ namespace Impower.Office365.Sharepoint
         {
             var encodedUrl = GetEncodedSharingUrl(sharingUrl);
             return await client.Shares[encodedUrl].DriveItem.Request().GetAsync(token);
-
-        }
-        public static async Task<Drive> GetDriveFromDriveId(
-            this GraphServiceClient client,
-            CancellationToken token,
-            string siteId,
-            string driveId
-        )
-        {
-            return await client.Sites[siteId].Drives[driveId].Request().GetAsync(token);
-        }
-        public static async Task<Site> GetSiteFromSiteId(
-            this GraphServiceClient client,
-            CancellationToken token,
-            string siteId
-        )
-        {
-            return await client.Sites[siteId].Request().GetAsync(token);
 
         }
         public static async Task<ListItem> GetListItemFromSharingUrl(
@@ -131,9 +64,9 @@ namespace Impower.Office365.Sharepoint
 
         public static async Task<Drive> AttemptToRetrieveDriveFromDriveItem(
             this GraphServiceClient client,
-            CancellationToken token,
             DriveItem driveItem,
-            string siteId
+            SiteReference site,
+            CancellationToken token
         )
         {
             Drive Drive = null;
@@ -143,17 +76,16 @@ namespace Impower.Office365.Sharepoint
             //As a fallback, attempt to get Drive from WebUrl
             if (String.IsNullOrWhiteSpace(DriveId) && !String.IsNullOrWhiteSpace(driveItem.WebUrl))
             {
-                Drive = await client.GetSharepointDriveByUrl(token, siteId, driveItem.WebUrl);
+                Drive = await client.GetSharepointDriveByUrl(token, site, driveItem.WebUrl);
                 DriveId = Drive?.Id;
             }
 
-            //As an additional fallback, attempt to get Drive by 
-            if (String.IsNullOrWhiteSpace(DriveId) && !String.IsNullOrEmpty(driveItem.Id) && !String.IsNullOrEmpty(driveItem.ETag))
+            if (String.IsNullOrWhiteSpace(DriveId) && !string.IsNullOrEmpty(driveItem.Id) && !String.IsNullOrEmpty(driveItem.ETag))
             {
-                var defaultDrive = await client.GetDefaultDriveForSite(token, siteId);
+                var defaultDrive = await client.GetDefaultDriveForSite(token, site.SiteId);
                 try
                 {
-                    var foundItem = await client.GetSharepointDriveItem(token, siteId, defaultDrive.Id, driveItem.Id);
+                    var foundItem = await new DriveItemReference(site, defaultDrive, driveItem).Get(client, token);
                     DriveId = foundItem?.ETag == driveItem.ETag ? defaultDrive.Id : null;
                 }
                 catch
@@ -161,16 +93,12 @@ namespace Impower.Office365.Sharepoint
                     //If "GetSharepointDriveItem" fails, that means that the given ItemID was not found in the default drive, so we can safely move on to throwing our error.
                 }
             }
-            if (String.IsNullOrWhiteSpace(DriveId))
+            if (string.IsNullOrWhiteSpace(DriveId))
             {
                 throw new Exception("DriveItem provided did not have enough information to determine the drive.");
             }
 
-            if (Drive == null)
-            {
-                Drive = await client.GetDriveFromDriveId(token, siteId, DriveId);
-            }
-            return Drive;
+            return Drive ?? await new DriveReference(site, DriveId).Get(client, token);
         }
         public static async Task<Site> AttemptToRetreiveSiteFromDriveItem(
             this GraphServiceClient client,
@@ -182,20 +110,20 @@ namespace Impower.Office365.Sharepoint
             string siteId = driveItem.ParentReference?.SiteId;
             Site site = null;
             //As a fallback, attempts to acquire from url.
-            if (String.IsNullOrWhiteSpace(siteId) && !String.IsNullOrWhiteSpace(driveItem.WebUrl))
+            if (string.IsNullOrWhiteSpace(siteId) && !String.IsNullOrWhiteSpace(driveItem.WebUrl))
             {
                 var siteUrl = GetSharepointSiteUrlFromDriveItemWebUrl(driveItem.WebUrl);
                 site = await client.GetSharepointSiteFromUrl(token, siteUrl);
                 siteId = site.Id;
             }
             //At this point, if siteId is not set, we can conclude the above methods have failed.
-            if (String.IsNullOrWhiteSpace(siteId))
+            if (string.IsNullOrWhiteSpace(siteId))
             {
                 throw new Exception("DriveItem provided did not have enough information to determine the site.");
             }
             if (site == null)
             {
-                site = await client.GetSiteFromSiteId(token, siteId);
+                site = await new SiteReference(siteId).Get(client, token);
             }
             return site;
         }
@@ -210,25 +138,24 @@ namespace Impower.Office365.Sharepoint
         public static async Task<Drive> GetSharepointDriveFromDriveItemWebUrl(
             this GraphServiceClient client,
             CancellationToken token,
-            string siteId,
+            SiteReference site,
             string siteWebUrl,
             string driveItemWebUrl
         )
         {
             var driveUrlName = GetDriveUrlNameFromDriveItemWebUrl(driveItemWebUrl, siteWebUrl);
             var reconstructedDriveWebUrl = $"{siteWebUrl.TrimEnd('/')}/{driveUrlName}";
-            return await client.GetSharepointDriveByUrl(token, siteId, reconstructedDriveWebUrl);
+            return await client.GetSharepointDriveByUrl(token, site, reconstructedDriveWebUrl);
 
         }
         public static async Task<Drive> GetSharepointDriveByUrl(
             this GraphServiceClient client,
             CancellationToken token,
-            string siteId,
+            SiteReference site,
             string driveUrl
         )
         {
-            var site = await client.Sites[siteId].Request().GetAsync(token);
-            var allDrives = await client.Sites[siteId].Drives.Request().GetAsync(token);
+            var allDrives = await site.RequestBuilder(client).Drives.Request().GetAsync(token);
             var matchingDrives = allDrives.Where(drive => drive.WebUrl == driveUrl);
             if (matchingDrives.Any())
             {
@@ -240,22 +167,20 @@ namespace Impower.Office365.Sharepoint
         public static async Task<List> GetSharepointListFromDrive(
             this GraphServiceClient client,
             CancellationToken token,
-            string siteId,
-            string driveId
+            DriveReference drive
         )
         {
-            var drive = await client.Sites[siteId].Drives[driveId].Request().Expand(d => d.List).GetAsync(token);
-            return drive.List;
+            var retrievedDrive = await drive.Get(client, token);
+            return retrievedDrive.List;
         }
         public static async Task<Drive> GetSharepointDriveByName(
             this GraphServiceClient client,
             CancellationToken token,
-            string siteId,
+            SiteReference site,
             string driveName
         )
         {
-            var site = await client.Sites[siteId].Request().GetAsync(token);
-            var allDrives = await client.Sites[siteId].Drives.Request().Expand(drive => drive.List).GetAsync(token);
+            var allDrives = await site.RequestBuilder(client).Drives.Request().GetAsync(token);
             var matchingDrives = allDrives.Where(drive => drive.Name == driveName);
             if (matchingDrives.Any())
             {
@@ -263,26 +188,22 @@ namespace Impower.Office365.Sharepoint
             }
             return null;
         }
-        public static async Task<DriveItem> GetSharepointDriveItem(
+        public static async Task<DriveItem> GetSharepointWorkbook(
             this GraphServiceClient client,
             CancellationToken token,
-            string siteId,
-            string driveId,
-            string itemId
+            DriveItemReference item,
+            WorkbookSessionConfiguration session
+
         )
         {
-            IDriveRequestBuilder drive;
-            if (String.IsNullOrWhiteSpace(driveId))
+            var driveItem = await item.RequestBuilder(client).Request().UpdateRequestWithSession(session).Expand(requestItem => requestItem.Workbook).GetAsync(token);
+            if (String.IsNullOrWhiteSpace(driveItem?.Workbook?.Application?.Id ?? String.Empty))
             {
-                drive = client.Sites[siteId].Drive;
+                throw new Exception("This drive item does not appear to be a valid workbook.");
             }
-            else
-            {
-                drive = client.Sites[siteId].Drives[driveId];
-            }
-            return await drive.Items[itemId].Request().Expand(item => item.ListItem).GetAsync(token);
+            return driveItem;
         }
-        public static async Task UploadListItems(this GraphServiceClient client, CancellationToken token, string siteId, string listId, DataTable data)
+        public static async Task UploadListItems(this GraphServiceClient client, CancellationToken token, ListReference list, DataTable data)
         {
 
             foreach (DataRow row in data.AsEnumerable())
@@ -302,82 +223,47 @@ namespace Impower.Office365.Sharepoint
                 foreach (DataColumn column in data.Columns)
                 {
                     listItem.Fields.AdditionalData[column.ColumnName] = row[column.ColumnName].ToString();
-       
+
                 }
-                _ = await client.Sites[siteId].Lists[listId].Items.Request().AddAsync(listItem, cancellationToken: token);
+                _ = await list.RequestBuilder(client).Items.Request().AddAsync(listItem, cancellationToken: token);
             }
         }
         public static async Task<List> GetSharepointList(
             this GraphServiceClient client,
             CancellationToken token,
-            string siteId,
-            string listId
+            ListReference list
         )
         {
-            return await client.Sites[siteId].Lists[listId].Request().Expand(list => list.Columns).GetAsync(token);
+            return await list.RequestBuilder(client).Request().Expand(l => l.Columns).GetAsync(token);
 
         }
         public static async Task<FieldValueSet> UpdateSharepointDriveItemFields(
             this GraphServiceClient client,
             CancellationToken token,
-            string siteId,
-            string driveId,
-            string itemId,
+            DriveItemReference driveItem,
             FieldValueSet fieldValueSet
         )
         {
-            IDriveRequestBuilder drive;
-            if (String.IsNullOrWhiteSpace(driveId))
-            {
-                drive = client.Sites[siteId].Drive;
-            }
-            else
-            {
-                drive = client.Sites[siteId].Drives[driveId];
-            }
-
-            return await drive.Items[itemId].ListItem.Fields.Request().UpdateAsync(fieldValueSet, token);
-
-        }
-        public static async Task<ListItem> GetSharepointListItem(
-            this GraphServiceClient client,
-            CancellationToken token,
-            string siteId,
-            string listId,
-            string itemId
-        )
-        {
-            return await client.Sites[siteId].Lists[listId].Items[itemId].Request().GetAsync(token);
+            return await driveItem.RequestBuilder(client).ListItem.Fields.Request().UpdateAsync(fieldValueSet, token);
         }
         public static async Task<List<DriveItem>> GetSharepointDriveItemsByPath(
             this GraphServiceClient client,
             CancellationToken token,
-            string siteId,
-            string driveId,
+            DriveReference drive,
             string path
         )
         {
             IDriveItemChildrenCollectionRequest request;
-            IDriveRequestBuilder drive;
             string folder = Path.GetDirectoryName(path);
             string filename = Path.GetFileName(path);
 
-            if (String.IsNullOrWhiteSpace(driveId))
-            {
-                drive = client.Sites[siteId].Drive;
-            }
-            else
-            {
-                drive = client.Sites[siteId].Drives[driveId];
-            }
-
             if (String.IsNullOrWhiteSpace(folder))
             {
-                request = drive.Root.Children.Request();
+                request = drive.RequestBuilder(client).Root.Children.Request();
             }
             else
             {
-                request = drive.Root.ItemWithPath(folder).Children.Request();
+                request = drive.RequestBuilder(client).Root.ItemWithPath(folder).Children.Request();
             }
 
             var items = await request.GetAsync(token);

@@ -16,18 +16,18 @@ namespace Impower.Office365.Sharepoint
     {
         [Category("Output")]
         [DisplayName("List Item")]
-        public OutArgument<ListItem> ListItem { get; set; }
+        public OutArgument<ListItem> ListItemOutput { get; set; }
 
         [Category("Output")]
         [DisplayName("List")]
-        public OutArgument<List> List { get; set; }
-        protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken cancellationToken, GraphServiceClient client)
+        public OutArgument<List> ListOutput { get; set; }
+        protected override Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken cancellationToken, GraphServiceClient client)
         {
-            return ctx =>
+            return Task.FromResult<Action<AsyncCodeActivityContext>>(ctx =>
             {
-                ctx.SetValue(ListItem, base.ListItemValue);
-                ctx.SetValue(List, base.ListValue);
-            };
+                ctx.SetValue(ListItemOutput, ListItem);
+                ctx.SetValue(ListOutput, List);
+            });
         }
     }
 }

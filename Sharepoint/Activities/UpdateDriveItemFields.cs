@@ -10,15 +10,11 @@ using System.Linq;
 namespace Impower.Office365.Sharepoint
 {
     [DisplayName("Update DriveItem Fields")]
-    public class UpdateDriveItemFields : SharepointDriveActivity
+    public class UpdateDriveItemFields : SharepointDriveItemActivity
     {
         [Category("Input")]
         [RequiredArgument]
-        [DisplayName("DriveItem ID")]
-        public InArgument<string> DriveItemID { get; set; }
-        [Category("Input")]
-        [RequiredArgument]
-        public InArgument<Dictionary<string, object>> Fields { get; set; }
+        public InArgument<Dictionary<string, object>> FieldsInput { get; set; }
         [Category("Input")]
         [DisplayName("Use Display Names")]
         [Description("Allows referencing columns by their display name. If set, keys will be matching first against the internal name and then against the display name, as a fallback.")]
@@ -27,20 +23,18 @@ namespace Impower.Office365.Sharepoint
         [DisplayName("Updated Fields")]
         public OutArgument<Dictionary<string, object>> UpdatedFields { get; set; }
         private Dictionary<string, object> FieldsValue;
-        private string DriveItemIdValue;
         private bool UseDisplayNamesValue; 
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
-            DriveItemIdValue = context.GetValue(DriveItemID);
-            FieldsValue = context.GetValue(Fields);
+            FieldsValue = context.GetValue(FieldsInput);
             UseDisplayNamesValue = context.GetValue(UseDisplayNames);
         }
         protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
         {
             if (UseDisplayNamesValue)
             {
-                var list = await client.GetSharepointList(token, SiteId, ListId);
+                var list = await SiteReference.List(DriveItem.ListItem.ParentReference.Id).Get(client, token);
                 //TODO - this could be cleaned up.
                 //This will throw if one of the display names resolves to a name that already exists in the dictionary.
                 var newFieldsValue = new Dictionary<string, object>();
@@ -69,7 +63,7 @@ namespace Impower.Office365.Sharepoint
             {
                 AdditionalData = FieldsValue
             };
-            FieldValueSet result = await client.UpdateSharepointDriveItemFields(token, SiteId, DriveId, DriveItemIdValue, fieldValueSet);
+            FieldValueSet result = await client.UpdateSharepointDriveItemFields(token, DriveItemReference, fieldValueSet);
             return ctx =>
             {
                 ctx.SetValue(UpdatedFields, result.AdditionalData);
