@@ -20,20 +20,16 @@ namespace Impower.Office365.Sharepoint {
         [Category("Output")]
         [DisplayName("Sharing Link")]
         public OutArgument<string> SharingLink { get; set; }
-        [Category("Output")]
-        [DisplayName("Drive Item")]
-        public OutArgument<DriveItem> DriveItem { get; set; }
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
             LinkTypeValue = context.GetValue(LinkType);
         }
-        protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken cancellationToken, GraphServiceClient client)
+        protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
         {
-            Permission permission = await client.ShareDriveItem(cancellationToken, DriveItemIdValue, SiteId, DriveId, LinkTypeValue);
+            Permission permission = await client.CreateSharingLinkForSharepointDriveItem(token, DriveItemReference, LinkTypeValue);
             return ctx =>
             {
-                ctx.SetValue(DriveItem, DriveItemValue);
                 ctx.SetValue(SharingLink, permission.Link.WebUrl);
             };
 

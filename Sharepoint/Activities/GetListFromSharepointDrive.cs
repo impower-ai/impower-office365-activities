@@ -18,16 +18,17 @@ namespace Impower.Office365.Sharepoint
         [Category("Output")]
         [DisplayName("Writable Fields")]
         public OutArgument<string[]> Fields { get; set; }
-        protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
+        protected override Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
         {
-            List list = await client.GetSharepointList(token, SiteId, ListId);
+            var list = Drive.List;
             string[] fields = list.Columns.Where(column => !(column.ReadOnly ?? false)).Select(column => column.Name).ToArray();
-            return ctx =>
+
+            return Task.FromResult<Action<AsyncCodeActivityContext>>(ctx =>
             {
-                ctx.SetValue(ListIdentifier, ListId);
+                ctx.SetValue(ListIdentifier, list.Id);
                 ctx.SetValue(List, list);
                 ctx.SetValue(Fields, fields);
-            };
+            });
         }
     }
 }

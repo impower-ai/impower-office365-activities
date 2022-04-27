@@ -14,39 +14,36 @@ namespace Impower.Office365.Sharepoint
     {
         [RequiredArgument]
         [Category("Input")]
+        [DisplayName("Sharing URL")]
         public InArgument<string> SharingURL { get; set; }
-        internal string sharingUrl;
+        protected string SharingStringValue;
 
         [Category("Output")]
-        public OutArgument<DriveItem> DriveItem { get; set; }
+        public OutArgument<DriveItem> DriveItemOutput { get; set; }
         [Category("Output")]
-        public OutArgument<ListItem> ListItem { get; set; }
+        public OutArgument<ListItem> ListItemOutput { get; set; }
         [Category("Output")]
         public OutArgument<ItemReference> Parent { get; set; }
-        //[Category("Output")]
-        //public OutArgument<SharedDriveItem> SharedDriveItem { get; set; }
-        //[Category("Output")]
-        //public OutArgument<Site> Site { get; set; }
         protected override Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token)
         {
             return Task.CompletedTask;
         }
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
-            sharingUrl = context.GetValue(SharingURL);
+            SharingStringValue = context.GetValue(SharingURL);
         }
         protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
         {
-            Task<DriveItem> driveItemTask = client.GetDriveItemFromSharingUrl(token, sharingUrl);
-            Task<ListItem> listItemTask  = client.GetListItemFromSharingUrl(token, sharingUrl);
+            Task<DriveItem> driveItemTask = client.GetDriveItemFromSharingUrl(token, SharingStringValue);
+            Task<ListItem> listItemTask  = client.GetListItemFromSharingUrl(token, SharingStringValue);
             await Task.WhenAll(driveItemTask, listItemTask);
-            var driveItem = driveItemTask.Result;
-            var listItem = listItemTask.Result;
+            var driveItem = await driveItemTask;
+            var listItem = await listItemTask;
 
             return ctx =>
             {
-                ctx.SetValue(DriveItem, driveItem);
-                ctx.SetValue(ListItem, listItem);
+                ctx.SetValue(DriveItemOutput, driveItem);
+                ctx.SetValue(ListItemOutput, listItem);
                 if(driveItem.ParentReference != null)
                 {
                     ctx.SetValue(Parent, driveItem.ParentReference);

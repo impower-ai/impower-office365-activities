@@ -14,8 +14,8 @@ namespace Impower.Office365.Mail
     [DisplayName("Get Message By ID")]
     public class GetMessage : MessageActivity
     {
-
-        [Category("Misc")]
+        [DisplayName("Get Attachments?")]
+        [Category("Config")]
         [Description("Retrieve Attachments? Set to 'False' for performance use-cases.")]
         [DefaultValue(true)]
         public InArgument<bool> GetAttachments { get; set; }
@@ -24,7 +24,7 @@ namespace Impower.Office365.Mail
         public OutArgument<Message> Message { get; set; }
 
 
-        internal bool GetAttachmentsValue;
+        protected bool GetAttachmentsValue;
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);

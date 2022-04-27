@@ -1,4 +1,5 @@
-﻿using Microsoft.Graph;
+﻿using Impower.Office365.Sharepoint.Models;
+using Microsoft.Graph;
 using System;
 using System.Activities;
 using System.Collections.Generic;
@@ -16,13 +17,13 @@ namespace Impower.Office365.Sharepoint
         [DisplayName("Field Name")]
         [RequiredArgument]
         [Category("Input")]
-        public InArgument<string> FieldName { get; set; }
+        public InArgument<string> FieldNameInput { get; set; }
         [DisplayName("Value")]
         [RequiredArgument]
         [Category("Input")]
-        public InArgument<object> Field { get; set; }
-        protected string FieldNameValue;
-        protected object FieldValue;
+        public InArgument<object> FieldInput { get; set; }
+        protected string FieldName;
+        protected object Field;
         protected Dictionary<string, object> fieldData = new Dictionary<string, object>();
         [DisplayName("Updated Fields")]
         [Category("Output")]
@@ -30,25 +31,27 @@ namespace Impower.Office365.Sharepoint
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
-            FieldNameValue = FieldName.Get(context);
-            FieldValue = Field.Get(context);
+            FieldName = FieldNameInput.Get(context);
+            Field = FieldInput.Get(context);
         }
         protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
         {
-            var list = await client.GetSharepointList(token, SiteId, ListId);
+            var driveItemReference = new DriveItemReference(Site, Drive, DriveItem.Id);
+            var listId = DriveItem?.ListItem?.ParentReference?.Id ?? (await driveItemReference.Get(client, token)).ListItem.ParentReference.Id;
+            var list = await SiteReference.List(listId).Get(client,token);
 
             //TODO - this logic is messy - potential collisions of internal names and display names could lead to unexpected behavior.
             var writeableColumns = list.Columns.Where(column => !(column.ReadOnly ?? false));
-            var matchingColumns = writeableColumns.Where(column => column.Name.Equals(FieldNameValue) || column.DisplayName.Equals(FieldNameValue));
+            var matchingColumns = writeableColumns.Where(column => column.Name.Equals(FieldName) || column.DisplayName.Equals(FieldName));
             if (matchingColumns.Any())
             {
-                fieldData[matchingColumns.First().Name] = FieldValue;
+                fieldData[matchingColumns.First().Name] = Field;
             }
             else
             {
-                throw new Exception($"Could not find a field matching '{FieldNameValue}' in the target list. Available fields are: {String.Join(",", writeableColumns.Select(column => column.Name))}");
+                throw new Exception($"Could not find a field matching '{FieldName}' in the target list. Available fields are: {String.Join(",", writeableColumns.Select(column => column.Name))}");
             }
-            var updatedFields = await client.UpdateSharepointDriveItemFields(token, SiteId, DriveId, DriveItemIdValue, new FieldValueSet { AdditionalData = fieldData });
+            var updatedFields = await client.UpdateSharepointDriveItemFields(token, driveItemReference, new FieldValueSet { AdditionalData = fieldData });
             return ctx =>
             {
                 ctx.SetValue(UpdatedFields, updatedFields.AdditionalData);

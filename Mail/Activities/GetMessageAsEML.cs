@@ -12,11 +12,12 @@ namespace Impower.Office365.Mail
     [DisplayName("Download Message as .EML")]
     public class GetMessageAsEML : MessageActivity
     {
+        [DisplayName("File Path")]
         [Category("Input")]
         [Description("Where To Save The Email")]
         [DefaultValue(true)]
         public InArgument<string> FilePath { get; set; }
-        private string FilePathValue;
+        protected string FilePathValue;
 
         protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
         {

@@ -6,6 +6,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.ComponentModel;
 using System.IO;
+using Impower.Office365.Sharepoint.Models;
+
 namespace Impower.Office365.Sharepoint
 {
     public abstract class SharepointSiteActivity : Office365Activity
@@ -13,9 +15,9 @@ namespace Impower.Office365.Sharepoint
         [Category("Connection")]
         [DisplayName("Sharepoint URL")]
         public InArgument<string> WebURL { get; set; }
-        protected string SiteId => SiteValue.Id;
+        protected SiteReference SiteReference => new SiteReference(Site.Id);
         protected string WebUrlValue;
-        protected Site SiteValue;
+        protected Site Site;
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             WebUrlValue = context.GetValue(WebURL);
@@ -24,7 +26,7 @@ namespace Impower.Office365.Sharepoint
         {
             try
             {
-                SiteValue = await client.GetSharepointSiteFromUrl(token, WebUrlValue);
+                Site = await client.GetSharepointSiteFromUrl(token, WebUrlValue);
             }
             catch(Exception e)
             {

@@ -11,36 +11,33 @@ namespace Impower.Office365.Sharepoint
     public class GetSharepointDriveItem : SharepointDriveItemActivity
     {
         [Category("Output")]
-        public OutArgument<ListItem> ListItem { get; set; }
+        public OutArgument<ListItem> ListItemOutput { get; set; }
         [Category("Output")]
-        public OutArgument<DriveItem> DriveItem { get; set; }
+        public OutArgument<DriveItem> DriveItemOutput { get; set; }
 
         [Category("Output")]
-        public OutArgument<Dictionary<string,object>> Fields { get; set; }
+        public OutArgument<Dictionary<string,object>> FieldsOutput { get; set; }
         [Category("Output")]
-        public OutArgument<ItemReference> Reference { get; set; }
-        protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(
+        public OutArgument<ItemReference> ReferenceOutput { get; set; }
+        protected override Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(
           CancellationToken token,
           GraphServiceClient client
         )
         {
-            return ctx =>
+            return Task.FromResult<Action<AsyncCodeActivityContext>>(ctx =>
             {
-                Fields.Set(ctx, new Dictionary<string, object>());
-                DriveItem.Set(ctx, DriveItemValue);
-                if(DriveItemValue.ParentReference != null)
+                FieldsOutput.Set(ctx, new Dictionary<string, object>());
+                DriveItemOutput.Set(ctx, DriveItem);
+                if (DriveItem.ParentReference != null)
                 {
-                    Reference.Set(ctx, DriveItemValue.ParentReference);
+                    ReferenceOutput.Set(ctx, DriveItem.ParentReference);
                 }
-                if (DriveItemValue.ListItem != null)
+                ListItemOutput.Set(ctx, DriveItem.ListItem);
+                if (DriveItem.ListItem.AdditionalData != null)
                 {
-                    ListItem.Set(ctx, DriveItemValue.ListItem);
-                    if (DriveItemValue.ListItem.AdditionalData != null)
-                    {
-                        Fields.Set(ctx, DriveItemValue.ListItem.Fields.AdditionalData);
-                    }
+                    FieldsOutput.Set(ctx, DriveItem.ListItem.Fields.AdditionalData);
                 }
-            };
+            });
         }
     }
 }
