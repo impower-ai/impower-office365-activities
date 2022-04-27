@@ -1,4 +1,5 @@
-﻿using Microsoft.Graph;
+﻿using Impower.Office365.Sharepoint.Models;
+using Microsoft.Graph;
 using System.Activities;
 using System.ComponentModel;
 using System.Threading;
@@ -11,18 +12,19 @@ namespace Impower.Office365.Sharepoint
         [Category("Input")]
         [DisplayName("DriveItem ID")]
         [RequiredArgument]
-        public InArgument<string> DriveItemID { get; set; }
-        internal string DriveItemIdValue;
-        internal DriveItem DriveItemValue;
+        public InArgument<DriveItemLocator> DriveItemLocator { get; set; }
+
+        public DriveItemReference DriveItemReference;
+        protected DriveItem DriveItem;
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
-            DriveItemIdValue = context.GetValue(DriveItemID);
+            DriveItemReference = DriveReference.Item(context.GetValue(DriveItemLocator));
         }
         protected override async Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token)
         {
             await base.Initialize(client, context, token);
-            DriveItemValue = await client.GetSharepointDriveItem(token, SiteId, DriveId, DriveItemIdValue);
+            DriveItem = await DriveItemReference.Get(client, token);
             
         }
     }

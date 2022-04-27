@@ -31,7 +31,10 @@ namespace Impower.Office365
 
         protected abstract void ReadContext(AsyncCodeActivityContext context);
         protected abstract Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token);
-
+        protected virtual Action<AsyncCodeActivityContext> Finalize()
+        {
+            return ctx => { };
+        }
         protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsync(
           AsyncCodeActivityContext context,
           CancellationToken token)
@@ -51,25 +54,22 @@ namespace Impower.Office365
             //BEGIN EXECUTION
             ReadContext(context);
             await Initialize(client, context, token);
-            return await AwaitWithTimeout(ExecuteAsyncWithClient(token, client), TimeoutValue);
+            var actions = await AwaitWithTimeout(ExecuteAsyncWithClient(token, client), TimeoutValue);
+            actions += Finalize();
+            return actions;
 
         }
 
-        private async Task AwaitWithTimeout(Task task, TimeSpan timeout)
+        private async Task<TResult> AwaitWithTimeout<TResult>(Task<TResult> task, TimeSpan timeout)
         {
             if (await Task.WhenAny(task, Task.Delay(timeout)) == task)
             {
-                return;
+                return await task;
             }
             else
             {
                 throw new TimeoutException("Timeout Exceeded");
             }
-        }
-        private async Task<TResult> AwaitWithTimeout<TResult>(Task<TResult> task, TimeSpan timeout)
-        {
-            await AwaitWithTimeout(task, timeout);
-            return await task;
         }
         protected abstract Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(
           CancellationToken token,

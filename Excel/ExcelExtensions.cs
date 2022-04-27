@@ -1,7 +1,9 @@
-﻿using Microsoft.Graph;
+﻿using Impower.Office365.Sharepoint.Models;
+using Microsoft.Graph;
 using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Net.Http;
 using System.Text;
@@ -14,6 +16,45 @@ namespace Impower.Office365.Excel
     {
         private const string SessionHeader = "workbook-session-id";
 
+        public static async Task<WorkbookSessionConfiguration> NewSession(this WorkbookSessionConfiguration current, GraphServiceClient client, DriveItemReference driveItem, CancellationToken token)
+        {
+            if (!current.UseSession)
+            {
+                return WorkbookSessionConfiguration.CreateSessionlessConfiguration();
+            }
+            if(current.Session != null)
+            {
+                try
+                {
+                    await client.EndWorkbookSession(driveItem, current, token);
+                }
+                catch { Trace.WriteLine("Failed to end session - " + current.Session.Id);  }
+            }
+            return new WorkbookSessionConfiguration(
+                await client.CreateSharepointWorkbookSession(driveItem, current.PersistChanges, token),
+                current.UseSession,
+                current.PersistChanges
+            );
+        }
+        public static async Task<WorkbookSessionInfo> CreateSharepointWorkbookSession(this GraphServiceClient client, DriveItemReference driveItem, bool persistChanges, CancellationToken token)
+        {
+            return await driveItem.RequestBuilder(client).BeginWorkbookSession(persistChanges, token);
+        }
+        public static async Task RecalculateSharepointWorkbook(this GraphServiceClient client, CalculationType type, DriveItemReference driveItem, WorkbookSessionConfiguration session, TimeSpan interval, TimeSpan timeout, CancellationToken token)
+        {
+            await client.RecalculateWorkbook(driveItem.RequestBuilder(client), session, type, interval, timeout, token);
+        }
+
+        public static TRequest UpdateRequestWithSession<TRequest>(this TRequest requestBuilder, WorkbookSessionConfiguration config)
+            where TRequest : IBaseRequest
+        {
+            return config.UseSession ? requestBuilder.Header(SessionHeader, config.Session.Id) : requestBuilder;
+        }
+        public static TRequest UpdateRequestWithSession<TRequest>(this TRequest requestBuilder, WorkbookSessionInfo session)
+            where TRequest : IBaseRequest
+        {
+            return requestBuilder.Header(SessionHeader, session.Id);
+        }
         public enum CalculationType
         {
             Recalculate,
@@ -86,17 +127,35 @@ namespace Impower.Office365.Excel
             }
             return null;
         }
-        internal static async Task<WorkbookSessionInfo> BeginWorkbookSession(this IDriveItemRequestBuilder driveItemRequestBuilder, bool persistChanges = true, CancellationToken token)
+        public static async Task<WorkbookSessionConfiguration> BeginSharepointWorkbookSession(this GraphServiceClient client, DriveItemReference driveItem, bool persistChanges, CancellationToken token)
         {
-            return await driveItemRequestBuilder.Workbook.CreateSession(persistChanges).Request().PostAsync(token);
+            return await BeginWorkbookSession(driveItem.RequestBuilder(client), persistChanges, token);
+        }
+        public static async Task RefreshWorkbookSession(this GraphServiceClient client, DriveItemReference driveItem, WorkbookSessionInfo session, CancellationToken token)
+        {
+            await RefreshWorkbookSession(driveItem.RequestBuilder(client), session, token);
+        }
+        public static async Task EndWorkbookSession(this GraphServiceClient client, DriveItemReference driveItem, WorkbookSessionConfiguration session, CancellationToken token)
+        {
+            await EndWorkbookSession(driveItem.RequestBuilder(client), session, token);
+        }
+
+        internal static async Task<WorkbookSessionConfiguration> BeginWorkbookSession(this IDriveItemRequestBuilder driveItemRequestBuilder, bool persistChanges, CancellationToken token)
+        {
+            var sessionInfo = await driveItemRequestBuilder.Workbook.CreateSession(persistChanges).Request().PostAsync(token);
+            return new WorkbookSessionConfiguration(sessionInfo, true, true);
+        }
+        internal static async Task RefreshWorkbookSession(this IDriveItemRequestBuilder driveItemRequestBuilder, WorkbookSessionInfo session, CancellationToken token)
+        {
+            await driveItemRequestBuilder.Workbook.RefreshSession().Request().UpdateRequestWithSession(session).PostAsync(token);
         }
         internal static async Task EndWorkbookSession(this IDriveItemRequestBuilder driveItemRequestBuilder, WorkbookSessionInfo session, CancellationToken token)
         {
-            await driveItemRequestBuilder.Workbook.CloseSession().Request().Header(SessionHeader, session.Id).PostAsync(token);
+            await driveItemRequestBuilder.Workbook.CloseSession().Request().UpdateRequestWithSession(session).PostAsync(token);
         }
-        internal static async Task RecalculateWorkbook(this GraphServiceClient client, IDriveItemRequestBuilder driveItemRequestBuilder, CalculationType type, TimeSpan pollInterval, TimeSpan timeout, CancellationToken token)
+        internal static async Task RecalculateWorkbook(this GraphServiceClient client, IDriveItemRequestBuilder driveItemRequestBuilder, WorkbookSessionConfiguration session, CalculationType type, TimeSpan pollInterval, TimeSpan timeout, CancellationToken token)
         {
-            var request = driveItemRequestBuilder.Workbook.Application.Calculate(type.ToString()).Request();
+            var request = driveItemRequestBuilder.Workbook.Application.Calculate(type.ToString()).Request().UpdateRequestWithSession(session);
             await client.ExecuteLongRunningRequest(request, HttpMethod.Post, pollInterval, timeout, token);
         }
         

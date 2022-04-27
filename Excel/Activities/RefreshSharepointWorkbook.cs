@@ -1,11 +1,7 @@
-﻿using Impower.Office365.Sharepoint;
-using Microsoft.Graph;
+﻿using Microsoft.Graph;
 using System;
 using System.Activities;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Linq;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using static Impower.Office365.Excel.ExcelExtensions;
@@ -29,12 +25,11 @@ namespace Impower.Office365.Excel
         {
             await client.RecalculateSharepointWorkbook(
                 CalculationType.FullRebuild,
+                DriveItemReference,
+                SessionConfiguration,
                 RefreshIntervalValue,
                 TimeoutValue,
-                token,
-                SiteId,
-                DriveId,
-                DriveItemId
+                token
                 );
             return ctx => { };
         }

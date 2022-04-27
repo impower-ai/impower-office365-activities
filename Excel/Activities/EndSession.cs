@@ -12,21 +12,16 @@ using static Impower.Office365.Excel.ExcelExtensions;
 
 namespace Impower.Office365.Excel
 {
-    public class CreateSession : SharepointWorkbookActivity
+    [DisplayName("End Session")]
+    public class EndSession : SharepointWorkbookActivity
     {
-        [Category("Input")]
-        [DefaultValue(true)]
-        [DisplayName("Persist Changes")]
-        public InArgument<bool> PersistChanges { get; set; }
-        internal bool PersistChangesValue;
         protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
         {
-            client.Cr
+            await client.EndWorkbookSession(DriveItemReference, SessionConfiguration, token);   
             return ctx => { };
         }
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
-            PersistChangesValue = PersistChanges.Get(context);
             base.ReadContext(context);
 
         }

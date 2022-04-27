@@ -11,24 +11,18 @@ using System.Threading.Tasks;
 
 namespace Impower.Office365.Sharepoint
 {
-    public abstract class SharepointListItemActivity : SharepointSiteActivity
+    public abstract class SharepointListActivity : SharepointSiteActivity
     {
         [RequiredArgument]
         [DisplayName("List ID")]
         public InArgument<ListLocator> ListLocator { get; set; }
-        [RequiredArgument]
-        [DisplayName("ListItem ID")]
-        public InArgument<ListItemLocator> ListItemLocator { get; set; }
 
-        protected string ListIdValue;
-        protected string ListItemIdValue;
-        protected List ListValue;
-        protected ListItem ListItemValue;
+        protected ListReference ListReference;
+        protected List List;
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
-            ListIdValue = context.GetValue(ListLocator);
-            ListItemIdValue = context.GetValue(ListItemLocator);
+            ListReference = SiteReference.List(context.GetValue(ListLocator));
         }
 
         protected override async Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token)
@@ -37,21 +31,12 @@ namespace Impower.Office365.Sharepoint
 
             try
             {
-                ListValue = await client.GetSharepointList(token, SiteValue.Id, ListIdValue);
+                List = await ListReference.Get(client, token);
             }
             catch(Exception e)
             {
                 throw new Exception("An Error Occured While Trying To Retrieve The Specified List.",e);
             }
-            try
-            {
-                ListItemValue = await client.GetSharepointListItem(token, SiteValue.Id, ListIdValue, ListItemIdValue);
-            }
-            catch(Exception e)
-            {
-                throw new Exception("An Error Occured While Trying To Retrieve The Specified ListItem",e);
-            }
-
         }
     }
 }

@@ -17,31 +17,31 @@ namespace Impower.Office365.Sharepoint
 
         [Category("Output")]
         [DisplayName("Results")]
-        public OutArgument<List<DriveItem>> DriveItems { get; set; }
+        public OutArgument<List<DriveItem>> DriveItemsOutput { get; set; }
         [Category("Output")]
         [DisplayName("First")]
-        public OutArgument<DriveItem> DriveItem { get; set; }
+        public OutArgument<DriveItem> DriveItemOutput { get; set; }
 
-        internal string path;
+        protected string PathValue;
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
-            path = context.GetValue(Path);
+            PathValue = context.GetValue(Path);
         }
         protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(
           CancellationToken token,
           GraphServiceClient client
         )
         {
-            var items = await client.GetSharepointDriveItemsByPath(token, this.SiteValue.Id, this.DriveId, path);
-            return (Action<AsyncCodeActivityContext>)(ctx =>
+            var items = await client.GetSharepointDriveItemsByPath(token, DriveReference, PathValue);
+            return ctx =>
             {
-                this.DriveItems.Set(ctx, items);
+                DriveItemsOutput.Set(ctx, items);
                 if (items.Any())
                 {
-                    this.DriveItem.Set(ctx, items.First());
+                    DriveItemOutput.Set(ctx, items.First());
                 }
-            });
+            };
 
         }
     }

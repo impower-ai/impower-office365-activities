@@ -12,31 +12,22 @@ using System.Threading.Tasks;
 
 namespace Impower.Office365.Sharepoint
 {
-    public class UploadListItems : SharepointSiteActivity
+    public class UploadListItems : SharepointListActivity
     {
-        [RequiredArgument]
-        [Category("Input")]
-        public InArgument<ListLocator> List { get; set; }
-        private string listID;
         [Category("Input")]
         [RequiredArgument]       
-        public InArgument<DataTable> Data { get; set; }
-        private DataTable data;
+        public InArgument<DataTable> DataArgument { get; set; }
+        private DataTable Data;
 
         protected override void ReadContext(AsyncCodeActivityContext context)
         {
             base.ReadContext(context);
-            listID = List.Get(context);
-            data = Data.Get(context);
+            Data = DataArgument.Get(context);
         }
         protected override async Task<Action<AsyncCodeActivityContext>> ExecuteAsyncWithClient(CancellationToken token, GraphServiceClient client)
         {
-            await client.UploadListItems(token, SiteId, listID, data);
+            await client.UploadListItems(token, ListReference, Data);
             return ctx => { };
-        }
-        protected override Task Initialize(GraphServiceClient client, AsyncCodeActivityContext context, CancellationToken token)
-        {
-            return base.Initialize(client, context, token);
         }
 
     }
