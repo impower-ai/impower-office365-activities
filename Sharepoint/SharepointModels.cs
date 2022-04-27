@@ -8,6 +8,17 @@ using System.Threading.Tasks;
 
 namespace Impower.Office365.Sharepoint.Models
 {
+    public struct DriveItemLocator
+    {
+        public string Id { get; private set; }
+        public DriveItemLocator(string id)
+        {
+            this.Id = id;
+        }
+        public static implicit operator string(DriveItemLocator l) => l.Id;
+        public static implicit operator DriveItemLocator(string id) => new DriveItemLocator(id);
+        public static implicit operator DriveItemLocator(DriveItem driveItem) => new DriveItemLocator(driveItem.Id);
+    }
     public struct ListItemLocator
     {
         public string Id { get; private set; }

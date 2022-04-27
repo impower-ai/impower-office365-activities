@@ -12,13 +12,20 @@ using Newtonsoft.Json;
 using System.Net.Http;
 using Newtonsoft.Json.Linq;
 using Impower.Office365.Sharepoint.Models;
+using Impower.Office365.Excel;
 using System.Text.RegularExpressions;
 using System.Data;
+using static Impower.Office365.Excel.ExcelExtensions;
 
 namespace Impower.Office365.Sharepoint
 {
     public static class SharepointExtensions
     {
+        public static async Task RecalculateSharepointWorkbook(this GraphServiceClient client, CalculationType type, TimeSpan interval, TimeSpan timeout, CancellationToken token, string siteId, string driveId, string itemId)
+        {
+            var driveItemRequestBuilder = client.Sites[siteId].Drives[driveId].Items[itemId];
+            await client.RecalculateWorkbook(driveItemRequestBuilder, type, interval, timeout, token);
+        }
         public static string GetDriveUrlNameFromDriveItemWebUrl(string driveItemWebUrl, string siteWebUrl)
         {
             if (!driveItemWebUrl.Contains(siteWebUrl))
@@ -263,10 +270,9 @@ namespace Impower.Office365.Sharepoint
             }
             return null;
         }
-        public static async Task<DriveItem> GetSharepointDriveItem(
+        internal static IDriveItemRequest GetSharepointDriveItemRequest(
             this GraphServiceClient client,
-            CancellationToken token,
-            string siteId,
+           string siteId,
             string driveId,
             string itemId
         )
@@ -280,7 +286,32 @@ namespace Impower.Office365.Sharepoint
             {
                 drive = client.Sites[siteId].Drives[driveId];
             }
-            return await drive.Items[itemId].Request().Expand(item => item.ListItem).GetAsync(token);
+            return drive.Items[itemId].Request();
+        }
+        public static async Task<DriveItem> GetSharepointDriveItem(
+            this GraphServiceClient client,
+            CancellationToken token,
+            string siteId,
+            string driveId,
+            string itemId
+        )
+        {
+            return await client.GetSharepointDriveItemRequest(siteId, driveId, itemId).Expand(item => item.ListItem).GetAsync(token);
+        }
+        public static async Task<DriveItem> GetSharepointWorkbook(
+                        this GraphServiceClient client,
+            CancellationToken token,
+            string siteId,
+            string driveId,
+            string itemId
+        )
+        {
+            var driveItem = await client.GetSharepointDriveItemRequest(siteId, driveId, itemId).Expand(item => item.Workbook).GetAsync(token);
+            if (String.IsNullOrWhiteSpace(driveItem?.Workbook?.Application?.Id ?? String.Empty))
+            {
+                throw new Exception("This drive item does not appear to be a valid workbook.");
+            }
+            return driveItem;
         }
         public static async Task UploadListItems(this GraphServiceClient client, CancellationToken token, string siteId, string listId, DataTable data)
         {
@@ -302,7 +333,7 @@ namespace Impower.Office365.Sharepoint
                 foreach (DataColumn column in data.Columns)
                 {
                     listItem.Fields.AdditionalData[column.ColumnName] = row[column.ColumnName].ToString();
-       
+
                 }
                 _ = await client.Sites[siteId].Lists[listId].Items.Request().AddAsync(listItem, cancellationToken: token);
             }
