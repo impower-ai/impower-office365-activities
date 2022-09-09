@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net461</TargetFramework>
+    <TargetFrameworks>net461;net6.0-windows7.0</TargetFrameworks>
     <PackageId>Impower.Office365.Activities</PackageId>
     <Company>Impower.AI</Company>
     <PackageIcon>logo.jpg</PackageIcon>
@@ -14,7 +14,12 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Graph" Version="3.32.0" />
-    <PackageReference Include="Microsoft.Identity.Client" Version="4.42.0" />
+    <PackageReference Include="Microsoft.Identity.Client" Version="4.46.2" />
+    <PackageReference Include="Microsoft.NETCore" Version="5.0.2" />
+    <PackageReference Include="Microsoft.NETFramework.ReferenceAssemblies.net461" Version="1.0.3">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="UiPath.MicrosoftOffice365.Activities" Version="1.11.1" />
   </ItemGroup>
 
@@ -26,17 +31,21 @@
   </ItemGroup>
   
   <ItemGroup>
-    <Reference Include="PresentationCore" />
-    <Reference Include="PresentationFramework" />
-    <Reference Include="System.Activities" />
-    <Reference Include="System.Activities.Presentation" />
-    <Reference Include="WindowsBase" />
-  </ItemGroup>
-  
-  <ItemGroup>
     <None Update="README.md">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0-windows'">
+    <PackageReference Include="UiPath.Workflow">
+      <Version>6.0.3</Version>
+    </PackageReference>
+  </ItemGroup>
+  
+  <ItemGroup Condition="'$(TargetFramework)' == 'net6.0-windows7.0'">
+    <PackageReference Include="UiPath.Workflow">
+      <Version>6.0.3</Version>
+    </PackageReference>
   </ItemGroup>
 
 </Project>
