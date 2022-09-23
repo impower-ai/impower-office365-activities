@@ -27,7 +27,7 @@ stages:
     stage_name: 'Development'
     deploy_environment: 'Impower-Development'
     target_resource_name: 'self'
-    sdk_version: 6.0.0
+    sdk_version: 5.0.x
 - template: /templates/publish_to_nugetorg.yaml@impower
   parameters:
     artifact_directory: 'CSharp Package'
