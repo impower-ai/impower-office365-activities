@@ -10,14 +10,14 @@ namespace Impower.Office365.Authentication
 {
     public static class Extensions
     {
-        public static IGraphServiceClient GetClientFromScope(
+        public static GraphServiceClient GetClientFromScope(
             AsyncCodeActivityContext context
         )
         {
             var parentScope = context.DataContext.GetProperties()["ParentScope"];
             if(parentScope != null)
             {
-                return parentScope.GetValue(context.DataContext) as IGraphServiceClient;
+                return parentScope.GetValue(context.DataContext) as GraphServiceClient;
             }
             return null;
         }
