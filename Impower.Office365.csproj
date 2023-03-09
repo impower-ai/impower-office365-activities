@@ -13,7 +13,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="UiPath.MicrosoftOffice365.Activities" Version="1.14.1" />
+    <PackageReference Include="UiPath.MicrosoftOffice365.Activities" Version="2.0.3" />
   </ItemGroup>
 
   <ItemGroup>
